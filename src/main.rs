@@ -10,10 +10,11 @@ use std::fs::{File, create_dir, copy, create_dir_all};
 use std::io::{ErrorKind, Error, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::ffi::OsStr;
+use crate::ErrorCodes::*;
 
 const ARG_BINARY: &str = "binary";
 const ARG_ICON: &str = "icon";
-const ARG_NAME: &str = "name";
+const ARG_NAME: &str = "output";
 
 const DIR_CONTENT: &str = "Contents";
 const DIR_RESOURCES: &str = "Resources";
@@ -32,6 +33,16 @@ const EXEC_CMD: &str = "exec \"$DIR/$EXEC\"";
 #[derive(RustEmbed)]
 #[folder="assets/"]
 struct Assets;
+
+enum ErrorCodes {
+    BinaryNotFound = 1,
+    IconNotFound = 2,
+    UnableToCreate = 3,
+    UnableToWrite = 4,
+    UnableToCopy = 5,
+    ChangePermission = 6,
+    WrongFileFormat = 7,
+}
 
 #[derive(Debug)]
 struct DataParsed {
@@ -62,10 +73,10 @@ fn parse_args() -> DataParsed {
             .takes_value(true))
 
         .arg(Arg::with_name(ARG_NAME)
-            .short("n")
-            .long("name")
+            .short("o")
+            .long("output")
             .value_name("NAME")
-            .help("Name of your App (Default: binary name")
+            .help("Output App (Default: binary name")
             .takes_value(true))
 
         .get_matches();
@@ -84,7 +95,7 @@ fn parse_args() -> DataParsed {
     if let Some(ref val) = icon {
         if val.extension().and_then(OsStr::to_str) != Some(ICON_EXT){
             eprintln!("Icon not a .icns file!");
-            process::exit(1);
+            process::exit(WrongFileFormat as i32);
         }
     }
 
@@ -168,7 +179,7 @@ fn create_file_structure(location: &mut PathBuf) -> Result<(), Error> {
 /// MAIN
 fn main() {
     if ! cfg!(unix) {
-        eprintln!("Error: Not on a unix-like OS system!\n Please use on a Unix-like OS");
+        eprintln!("Error: Not on a unix-like OS!");
         process::exit(1);
     }
 
@@ -178,13 +189,13 @@ fn main() {
     /* Validate Data */
     if ! data.binary.exists() {
         eprintln!("File \"{}\" does not exist!", data.binary.to_str().unwrap());
-        return;
+        process::exit(BinaryNotFound as i32);
     }
 
     if let Some(icons) = &data.icon {
         if ! icons.exists() {
             eprintln!("File \"{}\" does not exist!", icons.to_str().unwrap());
-            return;
+            process::exit(IconNotFound as i32)
         }
     }
 
@@ -221,23 +232,21 @@ fn main() {
     };
 
     /* Copy Binary, Icon and write Info.plist */
-    println!("Contents Location: {}", app_dir.to_str().unwrap());
-
     // create Info.plist
     app_dir.push(FILE_PLIST);
     let mut plist = match File::create(&app_dir) {
         Ok(file) => file,
         Err(err) => {
             eprintln!("Unable to create {}: {}", FILE_PLIST, err);
-            process::exit(1)
+            process::exit(UnableToCreate as i32)
         }
     };
 
     match plist.write_all(create_plist(icon_name).as_bytes()) {
         Ok(file) => file,
         Err(err) => {
-            eprintln!("Unable to create {}: {}", FILE_PLIST, err);
-            process::exit(1)
+            eprintln!("Unable to write to {}: {}", FILE_PLIST, err);
+            process::exit(UnableToWrite as i32)
         }
     }
     app_dir.pop();
@@ -248,8 +257,8 @@ fn main() {
     match copy(&data.binary, &app_dir) {
         Ok(_) => {}
         Err(err) => {
-            eprintln!("Unable to move executable: {}", err);
-            process::exit(1);
+            eprintln!("Unable to copy executable: {}", err);
+            process::exit(UnableToCopy as i32);
         }
     }
 
@@ -260,14 +269,14 @@ fn main() {
         Ok(file) => file,
         Err(err) => {
             eprintln!("Unable to create launch script: {}", err);
-            process::exit(1)
+            process::exit(UnableToCreate as i32)
         }
     };
     match launcher.write_all(create_launch_context(&binary_name).as_bytes()) {
         Ok(_) => {}
         Err(err) => {
-            eprintln!("Unable to create launch script: {}", err);
-            process::exit(1);
+            eprintln!("Unable to write launch script: {}", err);
+            process::exit(UnableToWrite as i32);
         }
     }
 
@@ -278,7 +287,7 @@ fn main() {
         Ok(_) => {}
         Err(err) => {
             eprintln!("Unable to create launch script: {}", err);
-            process::exit(1)
+            process::exit(ChangePermission as i32);
         }
     }
 
@@ -293,6 +302,7 @@ fn main() {
             Ok(_) => {}
             Err(err) => {
                 eprintln!("Unable to copy icons: {}", err);
+                process::exit(UnableToCopy as i32);
             }
         }
     }
