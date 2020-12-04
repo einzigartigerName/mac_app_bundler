@@ -6,6 +6,7 @@ use std::fs::{create_dir_all, create_dir, copy, File};
 use std::os::unix::fs::PermissionsExt;
 use std::io::{ErrorKind, Error, Write};
 use crate::ExitCode::*;
+use std::ffi::OsStr;
 
 const DIR_CONTENT: &str = "Contents";
 const DIR_RESOURCES: &str = "Resources";
@@ -14,7 +15,7 @@ const DIR_MACOS: &str = "MacOS";
 const FILE_LAUNCHER: &str = "launcher";
 const FILE_PLIST: &str = "Info.plist";
 
-pub const ICON_EXT: &str = "icns";
+const ICON_EXT: &str = "icns";
 
 const SHELL_BANG: &str = "#! /bin/sh";
 const EXEC_VAR: &str = "EXEC=";
@@ -116,6 +117,11 @@ fn create_file_structure(location: &mut PathBuf) -> Result<(), Error> {
 
     location.pop();
     Ok(())
+}
+
+/// Validates PathBuf points to .icns File
+pub fn is_icns(path: &PathBuf) -> bool {
+    path.extension().and_then(OsStr::to_str) == Some(ICON_EXT)
 }
 
 /// Create App Bundle

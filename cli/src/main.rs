@@ -6,7 +6,6 @@ use app_bundler::ExitCode::*;
 use clap::{App, Arg};
 use std::path::PathBuf;
 use std::process;
-use std::ffi::OsStr;
 use std::str::FromStr;
 
 const ARG_BINARY: &str = "binary";
@@ -56,7 +55,7 @@ fn parse_args() -> Result<DataParsed, ExitCode> {
 
     let icon = opt_path_from_opt_str(arg_icon);
     if let Some(ref val) = icon {
-        if val.extension().and_then(OsStr::to_str) != Some(ICON_EXT){
+        if ! is_icns(val) {
             eprintln!("Icon not a .icns file!");
             return Err(WrongFileFormat)
         }
