@@ -1,0 +1,12 @@
+[package]
+name = "gui"
+version = "0.1.0"
+authors = ["einzigartigerName <nelson.gillo@gmx.de>"]
+edition = "2018"
+
+[dependencies]
+app_bundler = {version = "0.1.0", path = "../" }
+
+[[bin]]
+name = "app-bundler-gui"
+path = "src/main.rs"

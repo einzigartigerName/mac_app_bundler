@@ -6,7 +6,12 @@ edition = "2018"
 
 [dependencies]
 rust-embed = "5.6.0"
-clap = "2.33.3"
+
+[workspace]
+members = [
+    "gui",
+    "cli",
+]
 
 [profile.release]
 lto = "yes"

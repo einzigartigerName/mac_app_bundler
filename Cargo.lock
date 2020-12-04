@@ -13,7 +13,6 @@ dependencies = [
 name = "app_bundler"
 version = "0.1.0"
 dependencies = [
- "clap",
  "rust-embed",
 ]
 
@@ -47,6 +46,21 @@ dependencies = [
  "textwrap",
  "unicode-width",
  "vec_map",
+]
+
+[[package]]
+name = "cli"
+version = "0.1.0"
+dependencies = [
+ "app_bundler",
+ "clap",
+]
+
+[[package]]
+name = "gui"
+version = "0.1.0"
+dependencies = [
+ "app_bundler",
 ]
 
 [[package]]

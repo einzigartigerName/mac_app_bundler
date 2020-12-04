@@ -1,0 +1,13 @@
+[package]
+name = "cli"
+version = "0.1.0"
+authors = ["einzigartigerName <nelson.gillo@gmx.de>"]
+edition = "2018"
+
+[dependencies]
+app_bundler = {version = "0.1.0", path = "../" }
+clap = "2.33.3"
+
+[[bin]]
+name = "app-bundler-cli"
+path = "src/main.rs"
