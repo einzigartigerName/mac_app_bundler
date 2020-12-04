@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::fs::{create_dir_all, create_dir, copy, File};
 use std::os::unix::fs::PermissionsExt;
 use std::io::{ErrorKind, Error, Write};
-use crate::ErrorCode::*;
+use crate::ExitCode::*;
 
 const DIR_CONTENT: &str = "Contents";
 const DIR_RESOURCES: &str = "Resources";
@@ -25,7 +25,15 @@ const EXEC_CMD: &str = "exec \"$DIR/$EXEC\"";
 #[folder="assets/"]
 struct Assets;
 
-pub enum ErrorCode {
+/// Exit Error Codes
+/// Success: 0
+/// Single digit (1-9): Creating/Writing/Copy Files
+/// Beginning with 1 (10-19): OS type Error
+/// Beginning with 2 (20-29): Interactive Errors (Gui exclusive)
+/// Beginning with 3 (30-39): CLI Errors (CLI exclusive)
+#[derive(Debug)]
+pub enum ExitCode {
+    Success = 0,
     BinaryNotFound = 1,
     IconNotFound = 2,
     UnableToCreate = 3,
@@ -33,10 +41,17 @@ pub enum ErrorCode {
     UnableToCopy = 5,
     ChangePermission = 6,
     WrongFileFormat = 7,
-    NotUnixSystem = 8,
+    NotUnixSystem = 10,
+    FileDialogError = 20,
 }
 
-#[derive(Debug)]
+impl Default for ExitCode {
+    fn default() -> Self {
+        Success
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct DataParsed {
     pub name: Option<PathBuf>,
     pub binary: PathBuf,
@@ -104,7 +119,7 @@ fn create_file_structure(location: &mut PathBuf) -> Result<(), Error> {
 }
 
 /// Create App Bundle
-pub fn bundle(data: DataParsed) -> Result<(), ErrorCode> {
+pub fn bundle(data: &DataParsed) -> Result<(), ExitCode> {
     if ! cfg!(unix) {
         eprintln!("Error: Not on a unix-like OS!");
         return Err(NotUnixSystem)
@@ -138,8 +153,8 @@ pub fn bundle(data: DataParsed) -> Result<(), ErrorCode> {
         None
     };
 
-    let mut app_dir = if let Some(path) = data.name {
-        path
+    let mut app_dir = if let Some(ref path) = data.name {
+        path.to_owned()
     } else {
         let mut local = PathBuf::new();
         local.push(&binary_name);

@@ -1,7 +1,7 @@
 extern crate clap;
 
 use app_bundler::*;
-use app_bundler::ErrorCode::*;
+use app_bundler::ExitCode::*;
 
 use clap::{App, Arg};
 use std::path::PathBuf;
@@ -15,7 +15,7 @@ const ARG_NAME: &str = "output";
 
 
 /// Parse Arguments and create Data Struct
-fn parse_args() -> Result<DataParsed, ErrorCode> {
+fn parse_args() -> Result<DataParsed, ExitCode> {
     let matches = App::new("AppBundler")
         .version("0.1.0")
         .about("Bundle your binary to a MacOS .app")
@@ -88,7 +88,8 @@ fn main() {
         }
     };
 
-    if let Err(code) = bundle(data) {
-        process::exit(code as i32)
+    match bundle(&data) {
+        Ok(()) => process::exit(Success as i32),
+        Err(code) => process::exit(code as i32),
     }
 }
